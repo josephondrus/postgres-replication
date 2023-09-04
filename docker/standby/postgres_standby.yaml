@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  postgres_standby:
+    image: postgres
+    container_name: postgres_standby
+    restart: always
+    volumes:
+      - ./standby_data:/var/lib/postgresql/data
+      - ./entrypoint.sh:/entrypoint.sh
+    entrypoint: 
+      - /entrypoint.sh
+    environment:
+      - POSTGRES_PASSWORD=postgres_password
+      - POSTGRES_USER=postgres
+      - PGDATA=/var/lib/postgresql/data
+      - PGUSER=postgres
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD=replicator_password
+    command: su postgres -c 'postgres -c log_statement=all -c log_replication_commands=on -c log_connections=on -c log_checkpoints=on -c log_min_messages=DEBUG2'
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shared_network
+      - standby_network
+    ports:
+      - "5433:5432"
+
+networks:
+  standby_network:
+    name: standby_network
+  shared_network:
+    name: shared_network
